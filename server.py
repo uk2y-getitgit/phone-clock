@@ -344,9 +344,135 @@ def type_text(text):
     _send(inputs)
 
 
+# --------------------------------------------------------------------------- 창 맨 앞으로
+# Windows는 백그라운드 프로세스(이 서버)가 띄운 창이 앞으로 나오는 것을 막고 작업표시줄만
+# 깜빡이게 합니다. 실행 직후 해당 창을 찾아 직접 맨 앞으로 올립니다.
+if os.name == "nt":
+    _u32 = ctypes.WinDLL("user32", use_last_error=True)
+    _k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    _WNDENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    _u32.EnumWindows.argtypes = [_WNDENUMPROC, wintypes.LPARAM]
+    _u32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+    _u32.GetWindowThreadProcessId.restype = wintypes.DWORD
+    _u32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+    _u32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
+    _u32.IsWindowVisible.argtypes = [wintypes.HWND]
+    _u32.IsIconic.argtypes = [wintypes.HWND]
+    _u32.GetWindow.argtypes = [wintypes.HWND, ctypes.c_uint]
+    _u32.GetWindow.restype = wintypes.HWND
+    _u32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
+    _u32.SetForegroundWindow.argtypes = [wintypes.HWND]
+    _u32.BringWindowToTop.argtypes = [wintypes.HWND]
+    _u32.GetForegroundWindow.restype = wintypes.HWND
+    _u32.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
+    _u32.AllowSetForegroundWindow.argtypes = [wintypes.DWORD]
+    _u32.keybd_event.argtypes = [wintypes.BYTE, wintypes.BYTE, wintypes.DWORD, ctypes.c_size_t]
+    _k32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+    _k32.OpenProcess.restype = wintypes.HANDLE
+    _k32.QueryFullProcessImageNameW.argtypes = [wintypes.HANDLE, wintypes.DWORD, wintypes.LPWSTR,
+                                                ctypes.POINTER(wintypes.DWORD)]
+    _k32.CloseHandle.argtypes = [wintypes.HANDLE]
+
+
+def _proc_name(pid, cache):
+    if pid not in cache:
+        name = ""
+        h = _k32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if h:
+            buf = ctypes.create_unicode_buffer(1024)
+            n = wintypes.DWORD(1024)
+            if _k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(n)):
+                name = os.path.basename(buf.value).lower()
+            _k32.CloseHandle(h)
+        cache[pid] = name
+    return cache[pid]
+
+
+def _top_windows():
+    """보이는 최상위 창 목록 [(hwnd, 프로세스exe, 제목)] — 화면 앞쪽 창부터."""
+    out, cache = [], {}
+
+    def cb(hwnd, _):
+        if _u32.IsWindowVisible(hwnd) and not _u32.GetWindow(hwnd, 4):  # GW_OWNER 없음
+            n = _u32.GetWindowTextLengthW(hwnd)
+            if n:
+                buf = ctypes.create_unicode_buffer(n + 1)
+                _u32.GetWindowTextW(hwnd, buf, n + 1)
+                pid = wintypes.DWORD()
+                _u32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+                out.append((hwnd, _proc_name(pid.value, cache), buf.value))
+        return True
+
+    _u32.EnumWindows(_WNDENUMPROC(cb), 0)
+    return out
+
+
+def _window_matcher(action):
+    """버튼이 띄우는 창을 알아보는 함수. config 의 "window" 로 직접 지정할 수도 있습니다
+    (예: "OneCommander.exe" = 프로세스 이름, 그 외 문자열 = 창 제목 일부)."""
+    w = (action.get("window") or "").strip()
+    if not w:
+        t = action.get("type")
+        if t == "run":
+            cmd = action.get("command")
+            w = os.path.basename((cmd[0] if isinstance(cmd, list) else str(cmd).split()[0]).strip('"'))
+        elif t == "open":
+            target = action.get("target", "")
+            if target.lower().startswith("shell:appsfolder\\"):
+                w = target.split("!")[0].split("\\")[-1].split("_")[0].split(".")[-1] + ".exe"
+            elif os.path.isdir(target):  # 폴더 → 탐색기 창 제목 = 폴더 이름
+                name = os.path.basename(os.path.normpath(target)).lower()
+                return lambda p, title: p == "explorer.exe" and title.lower() == name
+    if not w:
+        return None
+    w = w.lower()
+    if w.endswith(".exe"):
+        return lambda p, title: p == w
+    return lambda p, title: w in title.lower()
+
+
+def force_foreground(hwnd):
+    if _u32.IsIconic(hwnd):
+        _u32.ShowWindow(hwnd, 9)  # SW_RESTORE (최소화되어 있으면 복원)
+    fg = _u32.GetForegroundWindow()
+    me = _k32.GetCurrentThreadId()
+    other = _u32.GetWindowThreadProcessId(fg, None) if fg else 0
+    attached = bool(other and other != me and _u32.AttachThreadInput(me, other, True))
+    # Alt 키를 한 번 눌렀다 떼면 Windows가 '사용자가 조작 중'으로 보고 포커스 이동을 허용합니다
+    _u32.keybd_event(0x12, 0, 0x1, 0)
+    _u32.keybd_event(0x12, 0, 0x1 | 0x2, 0)
+    _u32.BringWindowToTop(hwnd)
+    ok = _u32.SetForegroundWindow(hwnd)
+    if attached:
+        _u32.AttachThreadInput(me, other, False)
+    return bool(ok)
+
+
+def bring_to_front_later(match, before, timeout=4.0):
+    """실행 후 새로 생긴 창(없으면 기존 창)을 찾아 맨 앞으로 올립니다."""
+    start = time.time()
+    while time.time() - start < timeout:
+        time.sleep(0.25)
+        wins = [w for w in _top_windows() if match(w[1], w[2])]
+        new = [w for w in wins if w[0] not in before]
+        fg = _u32.GetForegroundWindow()
+        if any(w[0] == fg for w in wins) and (new or time.time() - start > 1.0):
+            return  # 이미 맨 앞
+        if new:
+            force_foreground(new[0][0])
+            return
+        if wins and time.time() - start > 1.0:  # 이미 실행 중이던 프로그램
+            force_foreground(wins[0][0])
+            return
+
+
 # --------------------------------------------------------------------------- actions
 def run_action(action):
     t = action.get("type")
+    match = _window_matcher(action) if os.name == "nt" and t in ("run", "open") else None
+    if match:
+        before = {w[0] for w in _top_windows()}
+        _u32.AllowSetForegroundWindow(0xFFFFFFFF)  # ASFW_ANY: 실행된 앱이 스스로 앞으로 나오도록 허용
     if t == "keys":
         send_hotkey(action["keys"])
     elif t == "text":
@@ -360,6 +486,8 @@ def run_action(action):
         os.startfile(action["target"])  # URL, 폴더, 파일 모두 기본 프로그램으로 열기
     else:
         raise ValueError(f"알 수 없는 type: {t}")
+    if match:
+        threading.Thread(target=bring_to_front_later, args=(match, before), daemon=True).start()
 
 
 # --------------------------------------------------------------------------- http
