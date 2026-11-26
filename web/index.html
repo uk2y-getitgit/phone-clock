@@ -31,18 +31,15 @@
 
   /* ---------- 가로 고정: 세로로 들면 화면을 90도 회전 (전체화면에서는 기기 방향 자체를 가로로 잠금) ---------- */
   #app, #bg { position: fixed; left: 0; top: 0; width: var(--W); height: var(--H); }
+  #app { z-index: 1; }
   body.rot #app, body.rot #bg { transform: rotate(90deg) translateY(-100%); transform-origin: top left; }
   body.night #grid { opacity: .32; }
 
   /* ---------- 배경: 고정된 블루 네온 빛 ---------- */
-  #bg { overflow: hidden; z-index: -1; background: radial-gradient(120% 90% at 50% 120%, #0a1a3d 0%, var(--bg) 60%); }
-  #bg i { position: absolute; border-radius: 50%; opacity: .75; }
-  #bg i:nth-child(1) { width: calc(80 * var(--u)); height: calc(80 * var(--u)); left: 8%; top: -30%;
-    background: radial-gradient(circle, rgba(63,169,255,.45), rgba(63,169,255,0) 65%); }
-  #bg i:nth-child(2) { width: calc(75 * var(--u)); height: calc(75 * var(--u)); left: 62%; top: 10%;
-    background: radial-gradient(circle, rgba(106,92,255,.6), rgba(106,92,255,0) 65%); }
-  #bg i:nth-child(3) { width: calc(60 * var(--u)); height: calc(60 * var(--u)); left: 20%; top: 60%;
-    background: radial-gradient(circle, rgba(0,224,255,.28), rgba(0,224,255,0) 65%); }
+  /* 점 지구본 + 네트워크 선 이미지(bg.svg, tools/make_bg.py 로 생성) 위에 어두운 막을 덮어 은은하게 */
+  #bg { overflow: hidden; z-index: 0; background: var(--bg) url(bg.svg) center / cover no-repeat; }
+  #bg::after { content: ""; position: absolute; inset: 0;
+    background: radial-gradient(120% 100% at 35% 55%, rgba(2,6,16,.28) 0%, rgba(2,6,16,.55) 70%, rgba(2,5,12,.8) 100%); }
 
   /* ---------- 벤토 그리드 ----------
        [ 시계 ][ 날씨 ][ 아이콘 2x4 ]
@@ -60,10 +57,11 @@
 
   .card {
     position: relative; min-width: 0; min-height: 0; border-radius: calc(3.6 * var(--u));
-    background: linear-gradient(150deg, rgba(150,195,255,.09), rgba(120,170,255,.03) 60%);
-    border: 1px solid var(--card-line);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 calc(1 * var(--u)) calc(4 * var(--u)) rgba(0,6,24,.5);
-    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    background: linear-gradient(150deg, rgba(160,205,255,.12), rgba(120,170,255,.04) 55%, rgba(10,25,60,.18));
+    border: 1px solid rgba(170,210,255,.2);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.16), inset 0 0 calc(4 * var(--u)) rgba(63,169,255,.06),
+                0 calc(1.2 * var(--u)) calc(5 * var(--u)) rgba(0,4,18,.6);
+    -webkit-backdrop-filter: blur(7px) saturate(150%); backdrop-filter: blur(7px) saturate(150%);
     padding: calc(2.6 * var(--u)) calc(3.2 * var(--u));
   }
   .tag { position: absolute; top: calc(2.2 * var(--u)); left: calc(3 * var(--u));
@@ -121,7 +119,7 @@
     background: linear-gradient(145deg, rgba(255,255,255,.15), rgba(255,255,255,.04) 55%, rgba(120,170,255,.07));
     border: 1px solid rgba(190,220,255,.24);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.28), inset 0 -1px 0 rgba(0,0,0,.25), 0 calc(1 * var(--u)) calc(3 * var(--u)) rgba(0,8,30,.5);
-    -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(8px) saturate(160%); backdrop-filter: blur(8px) saturate(160%);
   }
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .key, .card { background: rgba(28,42,78,.78); }
@@ -163,7 +161,7 @@
 </style>
 </head>
 <body>
-<div id="bg"><i></i><i></i><i></i></div>
+<div id="bg"></div>
 
 <svg width="0" height="0" style="position:absolute">
   <defs>
