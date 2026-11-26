@@ -1,0 +1,86 @@
+{
+  "port": 8765,
+  "allow_wifi": true,
+  "token": "",
+  "clock": {
+    "show_seconds": true,
+    "hour12": false,
+    "night_dim_from": 22,
+    "night_dim_to": 7
+  },
+  "weather": {
+    "name": "대전",
+    "lat": 36.3504,
+    "lon": 127.3845,
+    "refresh_min": 10
+  },
+  "pc_stats": {
+    "enabled": true,
+    "refresh_sec": 2
+  },
+  "actions": [
+    {
+      "id": "capture",
+      "label": "캡처",
+      "icon": "✂️",
+      "type": "keys",
+      "keys": "win+shift+s"
+    },
+    {
+      "id": "ulsan",
+      "label": "울산지사",
+      "icon": "🏭",
+      "type": "open",
+      "target": "Z:\\data\\울산지사"
+    },
+    {
+      "id": "diag",
+      "label": "진단팀",
+      "icon": "🩺",
+      "type": "open",
+      "target": "\\\\192.168.0.166\\younsung\\진단팀"
+    },
+    {
+      "id": "claude",
+      "label": "클로드",
+      "icon": "🤖",
+      "type": "open",
+      "target": "shell:AppsFolder\\Claude_pzs8sxrjxfjjc!Claude"
+    },
+    {
+      "id": "works",
+      "label": "네이버웍스",
+      "icon": "💼",
+      "type": "run",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\WorksMobile\\NaverWorks\\WORKS.exe"
+      ]
+    },
+    {
+      "id": "edge",
+      "label": "Edge",
+      "icon": "🌐",
+      "type": "run",
+      "command": [
+        "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+        "--source-shortcut-location=desktop"
+      ]
+    },
+    {
+      "id": "onecommander",
+      "label": "OneCommander",
+      "icon": "🗂️",
+      "type": "open",
+      "target": "shell:AppsFolder\\44576milosp.OneCommander_p0rg76fmnrgsm!App"
+    },
+    {
+      "id": "gemini",
+      "label": "Gemini",
+      "icon": "✨",
+      "type": "run",
+      "command": [
+        "C:\\Users\\user\\AppData\\Local\\Google\\Gemini\\Gemini.exe"
+      ]
+    }
+  ]
+}

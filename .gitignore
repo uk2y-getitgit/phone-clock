@@ -1,0 +1,8 @@
+# 개인 설정(Wi-Fi 토큰 포함) — config.example.json 을 복사해 사용
+config.json
+server.log
+server.log.old
+tools/_icon_src.json
+tools/_icon_jobs.json
+__pycache__/
+.playwright-mcp/

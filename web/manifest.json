@@ -1,0 +1,9 @@
+{
+  "name": "Phone Clock",
+  "short_name": "Clock",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#000000",
+  "theme_color": "#000000"
+}
