@@ -1,11 +1,11 @@
 ﻿# Phone Clock 서버 종료
 #  - 이 폴더의 server.py 를 실행 중인 python/pythonw 프로세스
-#  - config.json 포트(기본 8765)를 점유 중인 python/pythonw 프로세스
+#  - config.json 포트(기본 8790)를 점유 중인 python/pythonw 프로세스
 param([switch]$Quiet)
 
 $base = Split-Path -Parent $PSScriptRoot
 $script = Join-Path $base 'server.py'
-$port = 8765
+$port = 8790
 try { $port = [int]((Get-Content (Join-Path $base 'config.json') -Raw -Encoding UTF8 | ConvertFrom-Json).port) } catch {}
 
 $ids = @()

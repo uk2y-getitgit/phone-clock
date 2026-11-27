@@ -618,7 +618,7 @@ def adb_reverse_loop(port):
 
 def main():
     cfg = CONFIG
-    port = int(cfg.get("port", 8765))
+    port = int(cfg.get("port", 8790))
     host = "0.0.0.0" if cfg.get("allow_wifi") else "127.0.0.1"
     try:
         srv = ThreadingHTTPServer((host, port), Handler)

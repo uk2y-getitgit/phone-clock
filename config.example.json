@@ -1,5 +1,5 @@
 {
-  "port": 8765,
+  "port": 8790,
   "allow_wifi": true,
   "token": "",
   "clock": {
